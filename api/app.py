@@ -1,6 +1,5 @@
-import pika
+
 import os
-import uuid
 from flask import Flask, request
 
 from battle_client import BattleClient
