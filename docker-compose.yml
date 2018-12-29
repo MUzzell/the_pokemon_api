@@ -1,0 +1,43 @@
+version: '2'
+services:
+
+  mq:
+    image: rabbitmq:latest
+    container_name: messenger
+    expose:
+      - "5672"
+    ports:
+      - "5672:5672"
+
+  frontend:
+    build:
+      context: ./api
+      dockerfile: ./Dockerfile
+    container_name: frontend
+    volumes:
+      - ./api:/api
+    expose:
+      - 5000
+    links:
+      - mq
+    depends_on:
+      - mq
+    environment:
+      - MQ_URL=mq:5672
+      - FLASK_APP=/api/app.py
+      - FLASK_ENV=development
+    # TODO: set user:group
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ./Dockerfile
+    container_name: backend
+    volumes:
+      - ./backend:/backend
+    links:
+      - mq
+    depends_on:
+      - mq
+    environment:
+      - MQ_URL=mq:5672
