@@ -1,4 +1,4 @@
-version: '2'
+version: '3'
 services:
 
   mq:
@@ -8,6 +8,11 @@ services:
       - "5672"
     ports:
       - "5672:5672"
+    healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:5672"]
+        interval: 5s
+        timeout: 2s
+        retries: 3
 
   frontend:
     build:
@@ -23,9 +28,11 @@ services:
     depends_on:
       - mq
     environment:
-      - MQ_URL=mq:5672
+      - MQ_URL=amqp://mq:5672
       - FLASK_APP=/api/app.py
       - FLASK_ENV=development
+    env_file:
+      - queues.env
     # TODO: set user:group
 
   backend:
@@ -40,4 +47,6 @@ services:
     depends_on:
       - mq
     environment:
-      - MQ_URL=mq:5672
+      - MQ_URL=amqp://mq:5672
+    env_file:
+      - queues.env
