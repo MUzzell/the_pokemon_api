@@ -4,12 +4,16 @@ import uuid
 import json
 
 
-class BattleClient(object):
+def _format_query(q_type, data):
+    return "{}:{}".format(q_type, data)
+
+
+class QueryClient(object):
     retries = 3
 
-    def __init__(self, url, battle_queue):
+    def __init__(self, url, query_queue):
         self.url = url
-        self.battle_queue = battle_queue
+        self.query_queue = query_queue
 
     def __enter__(self):
         try:
@@ -26,7 +30,7 @@ class BattleClient(object):
         result = self.channel.queue_declare(exclusive=True)
         self.callback_queue = result.method.queue
 
-        self.channel.basic_consume(self.on_battle_response, no_ack=True,
+        self.channel.basic_consume(self._on_query_response, no_ack=True,
                                    queue=self.callback_queue)
         return self
 
@@ -34,21 +38,26 @@ class BattleClient(object):
         self.channel.close()
         self.connection.close()
 
-    def send_request(self, data):
+    def get_by_id(self, ident):
+        return self._send_request(_format_query("ID", ident))
+
+    def get_by_name(self, name):
+        return self._send_request(_format_query("NAME", name))
+
+    def _send_request(self, message):
         self.response = None
         corr_id = str(uuid.uuid4())
         self.channel.basic_publish(
-            exchange='', routing_key=self.battle_queue,
+            exchange='', routing_key=self.query_queue,
             properties=pika.BasicProperties(
                 reply_to=self.callback_queue,
                 correlation_id=corr_id,
-            ), body=json.dumps(data))
+            ), body=message)
 
         while self.response is None:
             self.connection.process_data_events()
 
         return self.response
 
-    def on_battle_response(self, ch, method, props, body):
-        print("on_battle_response: {}".format(body))
-        self.response = body
+    def _on_query_response(self, ch, method, props, body):
+        self.response = body.decode("ASCII")

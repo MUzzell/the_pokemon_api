@@ -136,10 +136,13 @@ class Pokedex(object):
             )
 
     def get_pokemon_by_id(self, p_id):
-        return self.redis.get(_build_key(POKEMON_ID_KEY, p_id))
+        return self.redis.get(_build_key(POKEMON_ID_KEY, p_id)).decode('ASCII')
 
     def get_pokemon_by_name(self, name):
-        ids = self.redis.scan(match=_build_key(POKEMON_NAME_KEY, name))
+        ids = [self.redis.get(ident).decode("ASCII")
+               for ident in self.redis.scan_iter(
+            match=_build_key(POKEMON_NAME_KEY, name)
+        )]
         if not ids:
             return []
         return [self.get_pokemon_by_id(p_id) for p_id in ids]

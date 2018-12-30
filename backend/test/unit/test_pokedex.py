@@ -180,21 +180,26 @@ def test_get_pokemon_by_id(pokedex, mock_redis):
     ]
 )
 def test_get_pokemon_by_name(pokedex, mock_redis, name, ids):
-    mock_redis.get.return_value = None
-    mock_redis.scan.return_value = ids
+    mock_redis.get.return_value = b'1'
+    mock_redis.scan_iter.return_value = ids
 
     result = pokedex.get_pokemon_by_name(name)
     assert has_call(
-        mock_redis.scan,
+        mock_redis.scan_iter,
         call(match=_build_key(POKEMON_NAME_KEY, name))
     )
     if not ids:
         assert not mock_redis.get.called
         assert result == []
     else:
-        assert result == [None for _ in range(len(ids))]
-        for id in ids:
+        assert result == ['1' for _ in range(len(ids))]
+        assert mock_redis.get.call_count == len(ids) * 2
+        for ident in ids:
             assert has_call(
                 mock_redis.get,
-                call(_build_key(POKEMON_ID_KEY, id))
+                call(ident)
+            )
+            assert has_call(
+                mock_redis.get,
+                call(_build_key(POKEMON_ID_KEY, '1'))
             )
