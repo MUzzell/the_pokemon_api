@@ -14,6 +14,25 @@ def _build_key(base, ident):
     return "{}{}".format(base, ident)
 
 
+def _check_attr(entry, t, exp):
+    if not entry:
+        raise exp
+    if t == bool:
+        if entry.lower().strip() in ['f', 'false', '0']:
+            return False
+        elif entry.lower().strip() in ['t', 'true', '1']:
+            return True
+        else:
+            raise exp
+    if t == str:
+        return entry
+    entry = entry.strip()
+    try:
+        return t(entry)
+    except ValueError:
+        raise exp
+
+
 class Pokedex(object):
 
     def __init__(self, redis_url):
@@ -25,25 +44,48 @@ class Pokedex(object):
             f.readline()  # not interested in first line
 
             # id,Name,Type 1,Type 2,Total,HP,Attack,Defense,Sp.Atk,Sp.Def,Speed,Generation,Legendary
+            l = 2
             for line in f:
-                data = line.split(',')
-                pokemon = {
-                    'id': data[0],
-                    'name': data[1],
-                    'type': [data[2], data[3]],
-                    'stats': {
-                        'total': int(data[4]),
-                        'hp': int(data[5]),
-                        'attack': int(data[6]),
-                        'defense': int(data[7]),
-                        'sp.atk': int(data[8]),
-                        'sp.def': int(data[9]),
-                        'speed': int(data[10])
-                    },
-                    'gen': int(data[11]),
-                    'legendary': bool(data[12])
-                }
-                self._import_pokemon(pokemon)
+                try:
+                    pokemon = self._parse_pokemon_line(line)
+                except ValueError as ve:
+                    print("Invalid entry at line {}: {}".format(l, ve.message))
+                else:
+                    self._import_pokemon(pokemon)
+                    l += 1
+
+    def _parse_pokemon_line(self, line):
+
+        def check_type(type_a, type_b):
+            if not type_a:
+                raise ValueError("Invalid Type 1")
+
+            if type_b:
+                return [type_a, type_b]
+
+            return [type_a]
+
+        data = line.split(',')
+        if len(data) != 13:
+            raise ValueError(
+                "Not enough attributes"
+            )
+        return {
+            'id': _check_attr(data[0], str, ValueError("No Id")),
+            'name': _check_attr(data[1], str, ValueError("No name")),
+            'type': check_type(data[2], data[3]),
+            'stats': {
+                'total': _check_attr(data[4], int, ValueError("Invalid total")),
+                'hp': _check_attr(data[5], int, ValueError("Invalid HP")),
+                'attack': _check_attr(data[6], int, ValueError("Invalid attack")),
+                'defense': _check_attr(data[7], int, ValueError("Invalid defense")),
+                'sp.atk': _check_attr(data[8], int, ValueError("Invalid sp.atk")),
+                'sp.def': _check_attr(data[9], int, ValueError("Invalid sp.def")),
+                'speed': _check_attr(data[10], int, ValueError("Invalid speed"))
+            },
+            'gen': _check_attr(data[11], int, ValueError("Invalid generation Id")),
+            'legendary': _check_attr(data[12], bool, ValueError("Invalid legendary"))
+        }
 
     def _reset_lists(self):
         def delete_list(redis, key):
@@ -85,11 +127,11 @@ class Pokedex(object):
         for p_type in pokemon['type']:
             if p_type:
                 self.redis.lpush(
-                    _build_key(POKEMON_TYPE_KEY, p_type), p_id
+                    _build_key(POKEMON_TYPE_KEY, p_type.lower().strip()), p_id
                 )
         for stat, val in pokemon['stats'].items():
             self.redis.lpush(
-                _build_key(POKEMON_STATS_KEY, stat),
+                _build_key(POKEMON_STATS_KEY, stat.lower().strip()),
                 "{}:{}".format(val, p_id)
             )
 
