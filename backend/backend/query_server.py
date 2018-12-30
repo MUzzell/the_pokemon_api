@@ -3,8 +3,9 @@ import pika
 
 class QueryServer(object):
 
-    def __init__(self, query_queue):
+    def __init__(self, query_queue, pokedex):
         self.query_queue = query_queue
+        self.pokedex = pokedex
 
     def setup(self, channel):
         channel.queue_declare(queue=self.query_queue)

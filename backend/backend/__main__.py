@@ -5,11 +5,16 @@ import time
 
 from .battle_server import BattleServer
 from .query_server import QueryServer
+from .pokedex import Pokedex
 
 
 def setup(connection):
-    battle_server = BattleServer(os.getenv("BATTLE_QUEUE"))
-    query_server = QueryServer(os.getenv("QUERY_QUEUE"))
+    pokedex = Pokedex(os.getenv("REDIS_URL"))
+    battle_server = BattleServer(os.getenv("BATTLE_QUEUE"), pokedex)
+    query_server = QueryServer(os.getenv("QUERY_QUEUE"), pokedex)
+
+    print("Importing pokemon data")
+    pokedex.import_data(os.getenv("POKEMON_DATA_FILE"))
 
     print("Setting up channel")
     channel = connection.channel()

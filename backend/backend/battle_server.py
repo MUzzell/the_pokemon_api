@@ -3,8 +3,9 @@ import pika
 
 class BattleServer(object):
 
-    def __init__(self, battle_queue):
-        self.battle_queue = battle_queue
+    def __init__(self, battle_queue, pokedex):
+        self.battle_queue = battle_queue#
+        self.pokedex = pokedex
 
     def setup(self, channel):
         channel.queue_declare(queue=self.battle_queue)

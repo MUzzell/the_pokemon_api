@@ -6,8 +6,6 @@ services:
     container_name: messenger
     expose:
       - "5672"
-    ports:
-      - "5672:5672"
     healthcheck:
         test: ["CMD", "curl", "-f", "http://localhost:5672"]
         interval: 5s
@@ -16,11 +14,9 @@ services:
 
   redis:
     image: redis:latest
-    container_name: pokedex
+    container_name: redis
     expose:
       - 6379
-    ports:
-      - "6379:6379"
     healthcheck:
         test: ["CMD", "curl", "-f", "http://localhost:6379"]
         interval: 5s
@@ -34,8 +30,8 @@ services:
     container_name: frontend
     volumes:
       - ./api:/api
-    expose:
-      - 5000
+    ports:
+      - "5000:5000"
     links:
       - mq
     depends_on:
@@ -64,5 +60,6 @@ services:
     environment:
       - MQ_URL=amqp://mq:5672
       - REDIS_URL=redis://redis:6379/0
+      - POKEMON_DATA_FILE=/backend/pokemons.csv
     env_file:
       - queues.env
