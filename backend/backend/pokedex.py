@@ -149,13 +149,27 @@ class Pokedex(object):
             return []
         return [self.get_pokemon_by_id(p_id) for p_id in ids]
 
-    def get_pokemon_by_type(self, p_type):
+    def get_pokemon_of_type(self, p_type):
         key = _build_key(POKEMON_TYPE_KEY, p_type)
         ids = self.redis.lrange(key, 0, -1)
         if not ids:
             return []
 
         return [self.get_pokemon_by_id(p_id) for p_id in ids]
+
+    def get_pokemon_by_type(self, p_types):
+
+        result = []
+        for p_type in p_types:
+            result.append(self.get_pokemon_of_type(p_type))
+
+        if not result or not any(result):
+            return []
+
+        ids = [{a['id'] for a in b} for b in result]
+
+        ids = ids[0].intersection(*ids[1:])
+        return [a for a in result[0] if a['id'] in ids]
 
     def get_pokemon_by_stats(self, stats):
         pass

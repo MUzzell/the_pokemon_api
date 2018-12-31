@@ -213,11 +213,11 @@ def test_get_pokemon_by_name(pokedex, mock_redis, name, ids):
         ('type', ['a', 'b'])
     ]
 )
-def test_get_pokemon_by_type(pokedex, mock_redis, p_type, ids):
+def test_get_pokemon_of_type(pokedex, mock_redis, p_type, ids):
     mock_redis.get.return_value = b'1'
     mock_redis.lrange.return_value = ids
 
-    result = pokedex.get_pokemon_by_type(p_type)
+    result = pokedex.get_pokemon_of_type(p_type)
     assert has_call(
         mock_redis.lrange,
         call(_build_key(POKEMON_TYPE_KEY, p_type), 0, -1)
@@ -231,3 +231,31 @@ def test_get_pokemon_by_type(pokedex, mock_redis, p_type, ids):
                 mock_redis.get,
                 call(_build_key(POKEMON_ID_KEY, 'a'))
             )
+
+
+@pytest.mark.parametrize(
+    "data, expected", [
+        ({'type_a': []}, []),
+        ({'type_a': [{'id': 1}, {'id': 2}]}, [{'id': 1}, {'id': 2}]),
+        ({'type_a': [{'id': 1}]}, [{'id': 1}]),
+        ({'type_a': [{'id': 1}], 'type_b': []}, []),
+        ({'type_a': [], 'type_b': [{'id': 1}]}, []),
+        ({'type_a': [{'id': 1}], 'type_b': [{'id': 1}]}, [{'id': 1}]),
+        ({'type_a': [{'id': 1}, {'id': 2}], 'type_b': [{'id': 1}]}, [{'id': 1}]),
+        ({'type_a': [{'id': 1}], 'type_b': [{'id': 1}, {'id': 2}]}, [{'id': 1}]),
+        ({'type_a': [{'id': 1}, {'id': 2}], 'type_b': [{'id': 1}, {'id': 2}]}, [{'id': 1}, {'id': 2}])
+    ]
+)
+def test_get_pokemon_by_type(
+    pokedex, mock_redis,
+    data, expected
+):
+    def mock_get_pokemon_of_type(ptype):
+        return data[ptype]
+
+    pokedex.get_pokemon_of_type = mock_get_pokemon_of_type
+
+    actual = pokedex.get_pokemon_by_type(data.keys())
+
+    assert expected == actual
+

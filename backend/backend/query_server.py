@@ -26,9 +26,9 @@ class QueryServer(object):
         elif q_type == "NAME":
             result = self.pokedex.get_pokemon_by_name(arg)
         elif q_type == "TYPE":
-            result = []
-            for p_type in arg.split(','):
-                result.append(self.pokedex.get_pokemon_by_type(p_type))
+            p_types = [a for a in arg.split(',') if a.strip()]
+            if p_types:
+                result = self.pokedex.get_pokemon_by_type(p_types)
 
         if not result:
             self._send_error(ch, method, props, 404, "Not found")
