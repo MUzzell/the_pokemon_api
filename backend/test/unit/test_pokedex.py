@@ -165,7 +165,9 @@ def test_import_pokemon(pokedex, mock_redis, pokemon, exists):
 
 
 def test_get_pokemon_by_id(pokedex, mock_redis):
-    pokedex.get_pokemon_by_id("1")
+    mock_redis.get.return_value = b'{"a": 123}'
+    result = pokedex.get_pokemon_by_id("1")
+    assert result == {"a": 123}
     assert has_call(
         mock_redis.get, call(_build_key(POKEMON_ID_KEY, "1"))
     )
@@ -173,7 +175,6 @@ def test_get_pokemon_by_id(pokedex, mock_redis):
 
 @pytest.mark.parametrize(
     "name, ids", [
-        ('', []),
         ('name', []),
         ('name', ['a']),
         ('name', ['a', 'b'])
@@ -192,7 +193,7 @@ def test_get_pokemon_by_name(pokedex, mock_redis, name, ids):
         assert not mock_redis.get.called
         assert result == []
     else:
-        assert result == ['1' for _ in range(len(ids))]
+        assert result == [1 for _ in range(len(ids))]
         assert mock_redis.get.call_count == len(ids) * 2
         for ident in ids:
             assert has_call(
@@ -202,4 +203,31 @@ def test_get_pokemon_by_name(pokedex, mock_redis, name, ids):
             assert has_call(
                 mock_redis.get,
                 call(_build_key(POKEMON_ID_KEY, '1'))
+            )
+
+
+@pytest.mark.parametrize(
+    "p_type, ids", [
+        ('type', []),
+        ('type', ['a']),
+        ('type', ['a', 'b'])
+    ]
+)
+def test_get_pokemon_by_type(pokedex, mock_redis, p_type, ids):
+    mock_redis.get.return_value = b'1'
+    mock_redis.lrange.return_value = ids
+
+    result = pokedex.get_pokemon_by_type(p_type)
+    assert has_call(
+        mock_redis.lrange,
+        call(_build_key(POKEMON_TYPE_KEY, p_type), 0, -1)
+    )
+    if not ids:
+        assert not mock_redis.get.called
+        assert result == []
+    else:
+        for ident in ids:
+            assert has_call(
+                mock_redis.get,
+                call(_build_key(POKEMON_ID_KEY, 'a'))
             )

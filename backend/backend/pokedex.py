@@ -136,7 +136,9 @@ class Pokedex(object):
             )
 
     def get_pokemon_by_id(self, p_id):
-        return self.redis.get(_build_key(POKEMON_ID_KEY, p_id)).decode('ASCII')
+        return json.loads(self.redis.get(
+            _build_key(POKEMON_ID_KEY, p_id)
+        ).decode('ASCII'))
 
     def get_pokemon_by_name(self, name):
         ids = [self.redis.get(ident).decode("ASCII")
@@ -148,7 +150,12 @@ class Pokedex(object):
         return [self.get_pokemon_by_id(p_id) for p_id in ids]
 
     def get_pokemon_by_type(self, p_type):
-        pass
+        key = _build_key(POKEMON_TYPE_KEY, p_type)
+        ids = self.redis.lrange(key, 0, -1)
+        if not ids:
+            return []
+
+        return [self.get_pokemon_by_id(p_id) for p_id in ids]
 
     def get_pokemon_by_stats(self, stats):
         pass
