@@ -16,7 +16,8 @@ class QueryServer(object):
             'ID': self._get_by_id,
             'NAME': self._get_by_name,
             'TYPE': self._get_by_type,
-            'GEN': self._get_by_gen
+            'GEN': self._get_by_gen,
+            'LEGEND': self._get_by_legendary
         }
 
     def setup(self, channel):
@@ -42,6 +43,9 @@ class QueryServer(object):
 
     def _get_by_gen(self, arg):
         return self.pokedex.get_pokemon_by_generation(arg)
+
+    def _get_by_legendary(self, arg):
+        return self.pokedex.get_pokemon_by_legendary(arg)
 
     def _get_by_type(self, arg):
         p_types = [a for a in arg.split(',') if a.strip()]

@@ -181,5 +181,13 @@ class Pokedex(object):
 
         return [self.get_pokemon_by_id(p_id.decode('ASCII')) for p_id in ids]
 
+    def get_pokemon_by_legendary(self, is_legend):
+        key = _build_key(POKEMON_LEGEND_KEY, is_legend)
+        ids = self.redis.lrange(key, 0, -1)
+        if not ids:
+            return []
+
+        return [self.get_pokemon_by_id(p_id.decode('ASCII')) for p_id in ids]
+
     def get_pokemon_by_stats(self, stats):
         pass

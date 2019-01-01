@@ -16,6 +16,17 @@ def mock_query_server_publish():
         yield patched
 
 
+@pytest.fixture
+def mock_pokedex_functions(mock_pokedex):
+    yield {
+        'ID': mock_pokedex.get_pokemon_by_id,
+        'NAME': mock_pokedex.get_pokemon_by_name,
+        'TYPE': mock_pokedex.get_pokemon_by_type,
+        'GEN': mock_pokedex.get_pokemon_by_generation,
+        'LEGEND': mock_pokedex.get_pokemon_by_legendary
+    }
+
+
 def test_setup(query_server, fake_query_queue, mock_pokedex):
     channel = MagicMock()
     query_server.setup(channel)
@@ -28,44 +39,61 @@ def test_setup(query_server, fake_query_queue, mock_pokedex):
 
 
 @pytest.mark.parametrize(
-    "q_type, arg, result", [
-        ("ID", "1", {"a": "123"}),
-        ("NAME", "a", [{"a": "123"}]),
-        ("ID", "1", None),
-        ("NAME", "a", []),
-        ("GEN", "1", []),
-        ("GEN", "1", [{"a": 123}])
+    "body, accepted, result", [
+        (b'ID:1', True, {"a": "123"}),
+        (b'ID:1', True, None),
+        (b'NAME:a', True, []),
+        (b'NAME:a', True, [{"a": "123"}]),
+        (b'GEN:1', True, []),
+        (b'GEN:1', True, [{"a": 123}]),
+        (b'LEGEND:0', True, []),
+        (b'LEGEND:1', True, []),
+        (b'LEGEND:f', True, []),
+        (b'LEGEND:t', True, []),
+        (b'LEGEND:true', True, []),
+        (b'LEGEND:false', True, []),
+        (b'LEGEND:True', True, []),
+        (b'LEGEND:False', True, []),
+        (b'LEGEND:0', True, [{"a": 123}]),
+        (b'LEGEND:1', True, [{"a": 123}]),
+        (b'LEGEND:f', True, [{"a": 123}]),
+        (b'LEGEND:t', True, [{"a": 123}]),
+        (b'LEGEND:true', True, [{"a": 123}]),
+        (b'LEGEND:false', True, [{"a": 123}]),
+        (b'LEGEND:True', True, [{"a": 123}]),
+        (b'LEGEND:False', True, [{"a": 123}])
     ]
 )
-def test_handle_request_name_id_gen(
-    query_server, mock_pokedex, mock_query_server_publish,
-    q_type, arg, result
+def test_handle_request(
+    query_server,
+    mock_pokedex, mock_query_server_publish, mock_pokedex_functions,
+    body, accepted, result
 ):
-    mock_pokedex.get_pokemon_by_id.return_value = result
-    mock_pokedex.get_pokemon_by_name.return_value = result
-    mock_pokedex.get_pokemon_by_generation.return_value = result
+    for _, f in mock_pokedex_functions.items():
+        f.return_value = result
+
     ch = MagicMock()
     props = MagicMock()
     method = MagicMock()
 
-    body = bytes('{}:{}'.format(q_type, arg), 'ASCII')
-
     query_server.handle_request(ch, method, props, body)
 
-    if q_type == 'ID':
-        mock_pokedex.get_pokemon_by_id.assert_called_with(arg)
-        assert not mock_pokedex.get_pokemon_by_name.called
-        assert not mock_pokedex.get_pokemon_by_generation.called
-    elif q_type == 'NAME':
-        mock_pokedex.get_pokemon_by_name.assert_called_with(arg)
-        assert not mock_pokedex.get_pokemon_by_id.called
-        assert not mock_pokedex.get_pokemon_by_generation.called
-    elif q_type == 'GEN':
-        mock_pokedex.get_pokemon_by_generation.assert_called_with(
-            arg
+    if not accepted:
+        assert not any(
+            [f.called for q, f in mock_pokedex_functions.items()]
         )
-        assert not mock_pokedex.get_pokemon_by_id.called
-        assert not mock_pokedex.get_pokemon_by_name.called
+        mock_query_server_publish.assert_called_with(
+            ch, method, props,
+            {'code': 403, 'data': "Bad input"}
+        )
+        return
+
+    q_type, arg = body.decode('ASCII').split(':')
+
+    mock_pokedex_functions[q_type].assert_called_with(arg)
+    assert not any(
+        [f.called for q, f in mock_pokedex_functions.items() if q != q_type]
+    )
 
     if result:
         mock_query_server_publish.assert_called_with(
@@ -94,7 +122,8 @@ def test_handle_request_name_id_gen(
     ]
 )
 def test_handle_request_type(
-    query_server, mock_pokedex, mock_query_server_publish,
+    query_server,
+    mock_pokedex, mock_query_server_publish, mock_pokedex_functions,
     arg, expected_call, expected
 ):
 
@@ -106,15 +135,16 @@ def test_handle_request_type(
     body = bytes('TYPE:{}'.format(arg), 'ASCII')
     query_server.handle_request(ch, method, props, body)
 
-    assert not mock_pokedex.get_pokemon_by_id.called
-    assert not mock_pokedex.get_pokemon_by_name.called
-
     if not expected_call:
         assert not mock_pokedex.get_pokemon_by_type.called
     else:
         mock_pokedex.get_pokemon_by_type.assert_called_with(
             expected_call
         )
+
+    assert not any(
+        [f.called for q, f in mock_pokedex_functions.items() if q != 'TYPE']
+    )
 
     if expected:
         mock_query_server_publish.assert_called_with(

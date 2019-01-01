@@ -257,7 +257,7 @@ def test_get_pokemon_by_type(
 
     actual = pokedex.get_pokemon_by_type(data.keys())
 
-    assert expected == actual
+    assert actual == expected
 
 
 @pytest.mark.parametrize(
@@ -275,11 +275,41 @@ def test_get_pokemon_by_generation(
     mock_redis.lrange.return_value = [b'1' for _ in range(len(expected))]
     mock_redis.get.return_value = b'{"id": 1}'
 
-
     actual = pokedex.get_pokemon_by_generation(gen)
 
     mock_redis.lrange.assert_called_with(
         _build_key(POKEMON_GEN_KEY, gen), 0, -1
+    )
+    assert actual == expected
+    if expected:
+        mock_redis.get.assert_called_with(
+            _build_key(POKEMON_ID_KEY, 1)
+        )
+    else:
+        assert not mock_redis.get.called
+
+
+@pytest.mark.parametrize(
+    "is_legend, expected", [
+        (True, []),
+        (False, []),
+        (True, [{'id': 1}]),
+        (False, [{'id': 1}]),
+        (True, [{'id': 1}]),
+        (False, [{'id': 1}, {'id': 1}])
+    ]
+)
+def test_get_pokemon_by_legendary(
+    pokedex, mock_redis,
+    is_legend, expected
+):
+    mock_redis.lrange.return_value = [b'1' for _ in range(len(expected))]
+    mock_redis.get.return_value = b'{"id": 1}'
+
+    actual = pokedex.get_pokemon_by_legendary(is_legend)
+
+    mock_redis.lrange.assert_called_with(
+        _build_key(POKEMON_LEGEND_KEY, is_legend), 0, -1
     )
     assert actual == expected
     if expected:
