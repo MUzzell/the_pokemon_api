@@ -42,8 +42,8 @@ def pokedex(mock_redis):
         ("1,name,type,type,1,a,3,4,5,6,7,8,False", False, "Invalid HP"),
         ("1,name,type,type,1,2,,4,5,6,7,8,False", False, "Invalid attack"),
         ("1,name,type,type,1,2,a,4,5,6,7,8,False", False, "Invalid attack"),
-        ("1,name,type,type,1,2,3,,5,6,7,8,False", False, "Invalid defense"),
-        ("1,name,type,type,1,2,3,a,5,6,7,8,False", False, "Invalid defense"),
+        ("1,name,type,type,1,2,3,,5,6,7,8,False", False, "Invalid defence"),
+        ("1,name,type,type,1,2,3,a,5,6,7,8,False", False, "Invalid defence"),
         ("1,name,type,type,1,2,3,4,,6,7,8,False", False, "Invalid sp.atk"),
         ("1,name,type,type,1,2,3,4,a,6,7,8,False", False, "Invalid sp.atk"),
         ("1,name,type,type,1,2,3,4,5,,7,8,False", False, "Invalid sp.def"),
@@ -98,11 +98,11 @@ def test_parse_legendary(pokedex, check, is_legendary):
 @pytest.mark.parametrize(
     "pokemon", [
         {'id': 1, 'name': 'Bulbasaur', 'type': ['grass', 'poison'],
-         'stats': {'total': 1, 'hp': 2, 'attack': 3, 'defense': 4,
+         'stats': {'total': 1, 'hp': 2, 'attack': 3, 'defence': 4,
                    'sp.atk': 5, 'sp.def': 6, 'speed': 7},
          'gen': 1, 'legendary': False},
         {'id': 1, 'name': 'Bulbasaur', 'type': ['grass'],
-         'stats': {'total': 1, 'hp': 2, 'attack': 3, 'defense': 4,
+         'stats': {'total': 1, 'hp': 2, 'attack': 3, 'defence': 4,
                    'sp.atk': 5, 'sp.def': 6, 'speed': 7},
          'gen': 1, 'legendary': False},
     ]

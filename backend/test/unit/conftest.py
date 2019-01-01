@@ -3,13 +3,8 @@ import mock
 
 
 @pytest.fixture
-def fake_query_queue():
+def fake_queue_name():
     yield "qq"
-
-
-@pytest.fixture
-def fake_battle_queue():
-    yield "bq"
 
 
 @pytest.fixture

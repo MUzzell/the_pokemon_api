@@ -1,16 +1,14 @@
-import pika
-import json
 import re
+
+from .base_server import BaseServer
 
 STATS_REGEX = re.compile("([a-zA-Z0-9]+)([<>=]{1,2})(\\d+)")
 
-def _parse_request(message):
-    return message.split(":")
 
-
-class QueryServer(object):
+class QueryServer(BaseServer):
 
     def __init__(self, query_queue, pokedex):
+        super(QueryServer, self).__init__(query_queue)
         self.query_queue = query_queue
         self.pokedex = pokedex
 
@@ -23,20 +21,14 @@ class QueryServer(object):
             'STATS': self._get_by_stats
         }
 
-    def setup(self, channel):
-        channel.queue_declare(queue=self.query_queue)
-        channel.basic_qos(prefetch_count=1)
-        channel.basic_consume(self.handle_request, queue=self.query_queue)
-
-    def handle_request(self, ch, method, props, body):
-        q_type, arg = _parse_request(body.decode("ASCII"))
+    def _request_received(self, q_type, arg):
 
         result = self.q_func[q_type](arg)
 
         if not result:
-            self._send_error(ch, method, props, 404, "Not found")
+            return 404, "Not found"
         else:
-            self._send_result(ch, method, props, result)
+            return 200, result
 
     def _get_by_id(self, arg):
         return self.pokedex.get_pokemon_by_id(arg)
@@ -69,22 +61,3 @@ class QueryServer(object):
             return self.pokedex.get_pokemon_by_stats(stats)
 
         return None
-
-    def _send_result(self, ch, method, props, result):
-        self._publish(ch, method, props,
-                      {'code': 200, 'data': result})
-
-    def _send_error(self, ch, method, props, code, msg):
-        self._publish(ch, method, props,
-                      {'code': code, 'data': msg})
-
-    def _publish(self, ch, method, props, body):
-        ch.basic_publish(
-            exchange='', routing_key=props.reply_to,
-            properties=pika.BasicProperties(
-                correlation_id=props.correlation_id,
-                content_encoding='application/json'
-            ),
-            body=json.dumps(body)
-        )
-        ch.basic_ack(delivery_tag=method.delivery_tag)

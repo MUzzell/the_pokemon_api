@@ -80,7 +80,7 @@ class Pokedex(object):
                 'total': _check_attr(data[4], int, ValueError("Invalid total")),
                 'hp': _check_attr(data[5], int, ValueError("Invalid HP")),
                 'attack': _check_attr(data[6], int, ValueError("Invalid attack")),
-                'defense': _check_attr(data[7], int, ValueError("Invalid defense")),
+                'defence': _check_attr(data[7], int, ValueError("Invalid defence")),
                 'sp.atk': _check_attr(data[8], int, ValueError("Invalid sp.atk")),
                 'sp.def': _check_attr(data[9], int, ValueError("Invalid sp.def")),
                 'speed': _check_attr(data[10], int, ValueError("Invalid speed"))
