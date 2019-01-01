@@ -136,9 +136,12 @@ class Pokedex(object):
             )
 
     def get_pokemon_by_id(self, p_id):
-        return json.loads(self.redis.get(
+        result = self.redis.get(
             _build_key(POKEMON_ID_KEY, p_id)
-        ).decode('ASCII'))
+        )
+        if not result:
+            return None
+        return json.loads(result.decode('ASCII'))
 
     def get_pokemon_by_name(self, name):
         ids = [self.redis.get(ident).decode("ASCII")
@@ -150,15 +153,14 @@ class Pokedex(object):
         return [self.get_pokemon_by_id(p_id) for p_id in ids]
 
     def get_pokemon_of_type(self, p_type):
-        key = _build_key(POKEMON_TYPE_KEY, p_type)
+        key = _build_key(POKEMON_TYPE_KEY, p_type.lower().strip())
         ids = self.redis.lrange(key, 0, -1)
         if not ids:
             return []
 
-        return [self.get_pokemon_by_id(p_id) for p_id in ids]
+        return [self.get_pokemon_by_id(p_id.decode('ASCII')) for p_id in ids]
 
     def get_pokemon_by_type(self, p_types):
-
         result = []
         for p_type in p_types:
             result.append(self.get_pokemon_of_type(p_type))
@@ -170,6 +172,14 @@ class Pokedex(object):
 
         ids = ids[0].intersection(*ids[1:])
         return [a for a in result[0] if a['id'] in ids]
+
+    def get_pokemon_by_generation(self, gen):
+        key = _build_key(POKEMON_GEN_KEY, gen)
+        ids = self.redis.lrange(key, 0, -1)
+        if not ids:
+            return []
+
+        return [self.get_pokemon_by_id(p_id.decode('ASCII')) for p_id in ids]
 
     def get_pokemon_by_stats(self, stats):
         pass

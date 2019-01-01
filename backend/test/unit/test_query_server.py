@@ -32,15 +32,18 @@ def test_setup(query_server, fake_query_queue, mock_pokedex):
         ("ID", "1", {"a": "123"}),
         ("NAME", "a", [{"a": "123"}]),
         ("ID", "1", None),
-        ("NAME", "a", [])
+        ("NAME", "a", []),
+        ("GEN", "1", []),
+        ("GEN", "1", [{"a": 123}])
     ]
 )
-def test_handle_request_name_id(
+def test_handle_request_name_id_gen(
     query_server, mock_pokedex, mock_query_server_publish,
     q_type, arg, result
 ):
     mock_pokedex.get_pokemon_by_id.return_value = result
     mock_pokedex.get_pokemon_by_name.return_value = result
+    mock_pokedex.get_pokemon_by_generation.return_value = result
     ch = MagicMock()
     props = MagicMock()
     method = MagicMock()
@@ -52,9 +55,17 @@ def test_handle_request_name_id(
     if q_type == 'ID':
         mock_pokedex.get_pokemon_by_id.assert_called_with(arg)
         assert not mock_pokedex.get_pokemon_by_name.called
+        assert not mock_pokedex.get_pokemon_by_generation.called
     elif q_type == 'NAME':
         mock_pokedex.get_pokemon_by_name.assert_called_with(arg)
         assert not mock_pokedex.get_pokemon_by_id.called
+        assert not mock_pokedex.get_pokemon_by_generation.called
+    elif q_type == 'GEN':
+        mock_pokedex.get_pokemon_by_generation.assert_called_with(
+            arg
+        )
+        assert not mock_pokedex.get_pokemon_by_id.called
+        assert not mock_pokedex.get_pokemon_by_name.called
 
     if result:
         mock_query_server_publish.assert_called_with(

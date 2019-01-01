@@ -209,8 +209,8 @@ def test_get_pokemon_by_name(pokedex, mock_redis, name, ids):
 @pytest.mark.parametrize(
     "p_type, ids", [
         ('type', []),
-        ('type', ['a']),
-        ('type', ['a', 'b'])
+        ('type', [b'a']),
+        ('type', [b'a', b'b'])
     ]
 )
 def test_get_pokemon_of_type(pokedex, mock_redis, p_type, ids):
@@ -259,3 +259,32 @@ def test_get_pokemon_by_type(
 
     assert expected == actual
 
+
+@pytest.mark.parametrize(
+    "gen, expected", [
+        ('1', []),
+        ('1', [{'id': 1}]),
+        ('1', [{'id': 1}]),
+        ('1', [{'id': 1}, {'id': 1}])
+    ]
+)
+def test_get_pokemon_by_generation(
+    pokedex, mock_redis,
+    gen, expected
+):
+    mock_redis.lrange.return_value = [b'1' for _ in range(len(expected))]
+    mock_redis.get.return_value = b'{"id": 1}'
+
+
+    actual = pokedex.get_pokemon_by_generation(gen)
+
+    mock_redis.lrange.assert_called_with(
+        _build_key(POKEMON_GEN_KEY, gen), 0, -1
+    )
+    assert actual == expected
+    if expected:
+        mock_redis.get.assert_called_with(
+            _build_key(POKEMON_ID_KEY, 1)
+        )
+    else:
+        assert not mock_redis.get.called

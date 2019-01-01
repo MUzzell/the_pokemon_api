@@ -12,6 +12,13 @@ class QueryServer(object):
         self.query_queue = query_queue
         self.pokedex = pokedex
 
+        self.q_func = {
+            'ID': self._get_by_id,
+            'NAME': self._get_by_name,
+            'TYPE': self._get_by_type,
+            'GEN': self._get_by_gen
+        }
+
     def setup(self, channel):
         channel.queue_declare(queue=self.query_queue)
         channel.basic_qos(prefetch_count=1)
@@ -20,20 +27,28 @@ class QueryServer(object):
     def handle_request(self, ch, method, props, body):
         q_type, arg = _parse_request(body.decode("ASCII"))
 
-        result = None
-        if q_type == "ID":
-            result = self.pokedex.get_pokemon_by_id(arg)
-        elif q_type == "NAME":
-            result = self.pokedex.get_pokemon_by_name(arg)
-        elif q_type == "TYPE":
-            p_types = [a for a in arg.split(',') if a.strip()]
-            if p_types:
-                result = self.pokedex.get_pokemon_by_type(p_types)
+        result = self.q_func[q_type](arg)
 
         if not result:
             self._send_error(ch, method, props, 404, "Not found")
         else:
             self._send_result(ch, method, props, result)
+
+    def _get_by_id(self, arg):
+        return self.pokedex.get_pokemon_by_id(arg)
+
+    def _get_by_name(self, arg):
+        return self.pokedex.get_pokemon_by_name(arg)
+
+    def _get_by_gen(self, arg):
+        return self.pokedex.get_pokemon_by_generation(arg)
+
+    def _get_by_type(self, arg):
+        p_types = [a for a in arg.split(',') if a.strip()]
+        if p_types:
+            return self.pokedex.get_pokemon_by_type(p_types)
+
+        return None
 
     def _send_result(self, ch, method, props, result):
         self._publish(ch, method, props,
