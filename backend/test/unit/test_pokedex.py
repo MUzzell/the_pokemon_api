@@ -3,16 +3,14 @@ import json
 from mock import call
 from backend.pokedex import Pokedex
 
+from conftest import has_call
+
 POKEMON_ID_KEY = "pokemon:id:"
 POKEMON_NAME_KEY = "pokemon:name:"
 POKEMON_TYPE_KEY = "pokemon:type:"
 POKEMON_STATS_KEY = "pokemon:stats:"
 POKEMON_LEGEND_KEY = "pokemon:legendary:"
 POKEMON_GEN_KEY = "pokemon:gen:"
-
-
-def has_call(mocked_func, call):
-    return call in mocked_func.mock_calls
 
 
 def _build_key(base, ident):

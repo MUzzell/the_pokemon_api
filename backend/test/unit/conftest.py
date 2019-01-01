@@ -2,6 +2,10 @@ import pytest
 import mock
 
 
+def has_call(mocked_func, call):
+    return call in mocked_func.mock_calls
+
+
 @pytest.fixture
 def fake_queue_name():
     yield "qq"
