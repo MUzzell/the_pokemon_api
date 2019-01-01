@@ -1,6 +1,8 @@
 import pika
 import json
+import re
 
+STATS_REGEX = re.compile("([a-zA-Z0-9]+)([<>=]{1,2})(\\d+)")
 
 def _parse_request(message):
     return message.split(":")
@@ -17,7 +19,8 @@ class QueryServer(object):
             'NAME': self._get_by_name,
             'TYPE': self._get_by_type,
             'GEN': self._get_by_gen,
-            'LEGEND': self._get_by_legendary
+            'LEGEND': self._get_by_legendary,
+            'STATS': self._get_by_stats
         }
 
     def setup(self, channel):
@@ -51,6 +54,19 @@ class QueryServer(object):
         p_types = [a for a in arg.split(',') if a.strip()]
         if p_types:
             return self.pokedex.get_pokemon_by_type(p_types)
+
+        return None
+
+    def _get_by_stats(self, arg):
+        stats = []
+        for match in STATS_REGEX.finditer(arg):
+            if not match:
+                continue
+
+            stats.append((match.group(1), match.group(2), int(match.group(3))))
+
+        if stats:
+            return self.pokedex.get_pokemon_by_stats(stats)
 
         return None
 

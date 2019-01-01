@@ -16,6 +16,8 @@ def has_call(mocked_func, call):
 
 
 def _build_key(base, ident):
+    if isinstance(ident, str):
+        ident = ident.lower().strip()
     return "{}{}".format(base, ident)
 
 
@@ -256,6 +258,137 @@ def test_get_pokemon_by_type(
     pokedex.get_pokemon_of_type = mock_get_pokemon_of_type
 
     actual = pokedex.get_pokemon_by_type(data.keys())
+
+    assert actual == expected
+
+
+@pytest.mark.parametrize(
+    "stats, data, expected", [
+        (
+            [('s1', '=', 10)],
+            {'s1': [{'id': 1, 'stats': {'s1': 10}}]},
+            [{'id': 1, 'stats': {'s1': 10}}]
+        ),
+        (
+            [('s1', '=', 10)],
+            {'s1': [{'id': 1, 'stats': {'s1': 20}}]},
+            []
+        ),
+        (
+            [('s1', '>', 10)],
+            {'s1': [{'id': 1, 'stats': {'s1': 10}}]},
+            []
+        ),
+        (
+            [('s1', '>', 10)],
+            {'s1': [{'id': 1, 'stats': {'s1': 9}}]},
+            []
+        ),
+        (
+            [('s1', '>', 10)],
+            {'s1': [{'id': 1, 'stats': {'s1': 11}}]},
+            [{'id': 1, 'stats': {'s1': 11}}]
+        ),
+        (
+            [('s1', '<', 10)],
+            {'s1': [{'id': 1, 'stats': {'s1': 9}}]},
+            [{'id': 1, 'stats': {'s1': 9}}]
+        ),
+        (
+            [('s1', '<', 10)],
+            {'s1': [{'id': 1, 'stats': {'s1': 10}}]},
+            []
+        ),
+        (
+            [('s1', '<', 10)],
+            {'s1': [{'id': 1, 'stats': {'s1': 11}}]},
+            []
+        ),
+        (
+            [('s1', '<=', 10)],
+            {'s1': [{'id': 1, 'stats': {'s1': 10}}]},
+            [{'id': 1, 'stats': {'s1': 10}}]
+        ),
+        (
+            [('s1', '<=', 10)],
+            {'s1': [{'id': 1, 'stats': {'s1': 9}}]},
+            [{'id': 1, 'stats': {'s1': 9}}]
+        ),
+        (
+            [('s1', '<=', 10)],
+            {'s1': [{'id': 1, 'stats': {'s1': 11}}]},
+            []
+        ),
+        (
+            [('s1', '=>', 10)],
+            {'s1': [{'id': 1, 'stats': {'s1': 10}}]},
+            [{'id': 1, 'stats': {'s1': 10}}]
+        ),
+        (
+            [('s1', '=>', 10)],
+            {'s1': [{'id': 1, 'stats': {'s1': 11}}]},
+            [{'id': 1, 'stats': {'s1': 11}}]
+        ),
+        (
+            [('s1', '=>', 10)],
+            {'s1': [{'id': 1, 'stats': {'s1': 9}}]},
+            []
+        ),
+        (
+            [('s1', '=', 10)],
+            {'s1': [{'id': 1, 'stats': {'s1': 10, 's2': 20}}],
+             's2': [{'id': 1, 'stats': {'s1': 10, 's2': 20}}]},
+            [{'id': 1, 'stats': {'s1': 10, 's2': 20}}]
+        ),
+        (
+            [('s2', '=', 10)],
+            {'s1': [{'id': 1, 'stats': {'s1': 10, 's2': 20}}],
+             's2': [{'id': 1, 'stats': {'s1': 10, 's2': 20}}]},
+            []
+        ),
+        (
+            [('s2', '=', 20)],
+            {'s1': [{'id': 1, 'stats': {'s1': 10, 's2': 20}}],
+             's2': [{'id': 1, 'stats': {'s1': 10, 's2': 20}}]},
+            [{'id': 1, 'stats': {'s1': 10, 's2': 20}}]
+        ),
+        (
+            [('s1', '=', 10), ('s2', '=', 20)],
+            {'s1': [{'id': 1, 'stats': {'s1': 10, 's2': 20}}],
+             's2': [{'id': 1, 'stats': {'s1': 10, 's2': 20}}]},
+            [{'id': 1, 'stats': {'s1': 10, 's2': 20}}]
+        ),
+        (
+            [('s1', '=', 20), ('s2', '=', 20)],
+            {'s1': [{'id': 1, 'stats': {'s1': 10, 's2': 20}}],
+             's2': [{'id': 1, 'stats': {'s1': 10, 's2': 20}}]},
+            []
+        ),
+        (
+            [('s1', '=', 10), ('s2', '>', 20)],
+            {'s1': [{'id': 1, 'stats': {'s1': 10, 's2': 20}}],
+             's2': [{'id': 1, 'stats': {'s1': 10, 's2': 20}}]},
+            []
+        ),
+        (
+            [('s1', '=', 10), ('s2', '=', 20)],
+            {'s1': [{'id': 1, 'stats': {'s1': 10, 's2': 20}}],
+             's2': []},
+            []
+        ),
+
+    ]
+)
+def test_get_pokemon_by_stats(
+    pokedex, mock_redis,
+    stats, data, expected
+):
+    def mock_get_pokemon_by_stat(stat):
+        return data[stat]
+
+    pokedex.get_pokemon_by_stat = mock_get_pokemon_by_stat
+
+    actual = pokedex.get_pokemon_by_stats(stats)
 
     assert actual == expected
 

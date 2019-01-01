@@ -23,7 +23,8 @@ def mock_pokedex_functions(mock_pokedex):
         'NAME': mock_pokedex.get_pokemon_by_name,
         'TYPE': mock_pokedex.get_pokemon_by_type,
         'GEN': mock_pokedex.get_pokemon_by_generation,
-        'LEGEND': mock_pokedex.get_pokemon_by_legendary
+        'LEGEND': mock_pokedex.get_pokemon_by_legendary,
+        'STATS': mock_pokedex.get_pokemon_by_stats
     }
 
 
@@ -144,6 +145,57 @@ def test_handle_request_type(
 
     assert not any(
         [f.called for q, f in mock_pokedex_functions.items() if q != 'TYPE']
+    )
+
+    if expected:
+        mock_query_server_publish.assert_called_with(
+            ch, method, props,
+            {'code': 200, 'data': expected}
+        )
+    else:
+        mock_query_server_publish.assert_called_with(
+            ch, method, props,
+            {'code': 404, 'data': 'Not found'}
+        )
+
+
+@pytest.mark.parametrize(
+    "arg, expected_call, expected", [
+        ("s1 > 10", None, None),
+        ("s1 >10", None, None),
+        ("s1> 10", None, None),
+        ("s1", None, None),
+        (">", None, None),
+        ("10", None, None),
+        ("s1>10s", [('s1', '>', 10)], [{'id': 1}]),
+        ("s1>10", [('s1', '>', 10)], [{'id': 1}]),
+        ("s1>10", [('s1', '>', 10)], None),
+        ("s1>10,s2>20", [('s1', '>', 10), ('s2', '>', 20)], [{'id': 1}]),
+        ("s1>10 s2>20", [('s1', '>', 10), ('s2', '>', 20)], [{'id': 1}]),
+    ]
+)
+def test_handle_request_stats(
+    query_server,
+    mock_pokedex, mock_query_server_publish, mock_pokedex_functions,
+    arg, expected_call, expected
+):
+    mock_pokedex.get_pokemon_by_stats.return_value = expected
+    ch = MagicMock()
+    props = MagicMock()
+    method = MagicMock()
+
+    body = bytes('STATS:{}'.format(arg), 'ASCII')
+    query_server.handle_request(ch, method, props, body)
+
+    if not expected_call:
+        assert not mock_pokedex.get_pokemon_by_stats.called
+    else:
+        mock_pokedex.get_pokemon_by_stats.assert_called_with(
+            expected_call
+        )
+
+    assert not any(
+        [f.called for q, f in mock_pokedex_functions.items() if q != 'STATS']
     )
 
     if expected:

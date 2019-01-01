@@ -11,6 +11,8 @@ POKEMON_GEN_KEY = "pokemon:gen:"
 
 
 def _build_key(base, ident):
+    if isinstance(ident, str):
+        ident = ident.lower().strip()
     return "{}{}".format(base, ident)
 
 
@@ -127,13 +129,20 @@ class Pokedex(object):
         for p_type in pokemon['type']:
             if p_type:
                 self.redis.lpush(
-                    _build_key(POKEMON_TYPE_KEY, p_type.lower().strip()), p_id
+                    _build_key(POKEMON_TYPE_KEY, p_type), p_id
                 )
         for stat, val in pokemon['stats'].items():
             self.redis.lpush(
-                _build_key(POKEMON_STATS_KEY, stat.lower().strip()),
+                _build_key(POKEMON_STATS_KEY, stat),
                 "{}:{}".format(val, p_id)
             )
+
+    def _get_pokemon_from_list(self, key):
+        ids = self.redis.lrange(key, 0, -1)
+        if not ids:
+            return []
+
+        return [self.get_pokemon_by_id(p_id.decode('ASCII')) for p_id in ids]
 
     def get_pokemon_by_id(self, p_id):
         result = self.redis.get(
@@ -153,12 +162,24 @@ class Pokedex(object):
         return [self.get_pokemon_by_id(p_id) for p_id in ids]
 
     def get_pokemon_of_type(self, p_type):
-        key = _build_key(POKEMON_TYPE_KEY, p_type.lower().strip())
-        ids = self.redis.lrange(key, 0, -1)
-        if not ids:
-            return []
+        return self._get_pokemon_from_list(
+            _build_key(POKEMON_TYPE_KEY, p_type.lower().strip())
+        )
 
-        return [self.get_pokemon_by_id(p_id.decode('ASCII')) for p_id in ids]
+    def get_pokemon_by_generation(self, gen):
+        return self._get_pokemon_from_list(
+            _build_key(POKEMON_GEN_KEY, gen.lower().strip())
+        )
+
+    def get_pokemon_by_legendary(self, is_legend):
+        return self._get_pokemon_from_list(
+            _build_key(POKEMON_LEGEND_KEY, is_legend)
+        )
+
+    def get_pokemon_by_stat(self, stat):
+        return self._get_pokemon_from_list(
+            _build_key(POKEMON_STATS_KEY, stat)
+        )
 
     def get_pokemon_by_type(self, p_types):
         result = []
@@ -173,21 +194,31 @@ class Pokedex(object):
         ids = ids[0].intersection(*ids[1:])
         return [a for a in result[0] if a['id'] in ids]
 
-    def get_pokemon_by_generation(self, gen):
-        key = _build_key(POKEMON_GEN_KEY, gen)
-        ids = self.redis.lrange(key, 0, -1)
-        if not ids:
-            return []
-
-        return [self.get_pokemon_by_id(p_id.decode('ASCII')) for p_id in ids]
-
-    def get_pokemon_by_legendary(self, is_legend):
-        key = _build_key(POKEMON_LEGEND_KEY, is_legend)
-        ids = self.redis.lrange(key, 0, -1)
-        if not ids:
-            return []
-
-        return [self.get_pokemon_by_id(p_id.decode('ASCII')) for p_id in ids]
+    def _filter_by_stat(self, pokemon, stat, op, value):
+        if op == '>':
+            return pokemon['stats'][stat] > value
+        if op == '>=' or op == '=>':
+            return pokemon['stats'][stat] >= value
+        if op == '<':
+            return pokemon['stats'][stat] < value
+        if op == '<=' or op == '=>':
+            return pokemon['stats'][stat] <= value
+        if op == '=':
+            return pokemon['stats'][stat] == value
 
     def get_pokemon_by_stats(self, stats):
-        pass
+        # [(stat, op, value)]
+        result = []
+        for stat, op, value in stats:
+            result.append(
+                [p for p in self.get_pokemon_by_stat(stat)
+                 if self._filter_by_stat(p, stat, op, value)]
+            )
+
+        if not result or not any(result):
+            return []
+
+        ids = [{a['id'] for a in b} for b in result]
+
+        ids = ids[0].intersection(*ids[1:])
+        return [a for a in result[0] if a['id'] in ids]
