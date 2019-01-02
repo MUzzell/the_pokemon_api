@@ -159,7 +159,7 @@ def test_import_pokemon(pokedex, mock_redis, pokemon, exists):
                 mock_redis.lpush,
                 call(
                     _build_key(POKEMON_STATS_KEY, stat.lower().strip()),
-                    "{}:{}".format(value, pokemon['id'])
+                    pokemon['id']
                 )
             )
 

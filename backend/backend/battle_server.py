@@ -12,7 +12,7 @@ class BattleServer(BaseServer):
 
         self.pokedex = pokedex
 
-    def _request_received(self, args):
+    def _request_received(self, *args):
         if len(args) != 3:
             return 403, "Bad input"
 
@@ -44,7 +44,7 @@ class BattleServer(BaseServer):
         hp = defender['stats']['hp']
         defence = defender['stats']['defence']
 
-        dmg = atk - defence
+        dmg = (atk - defence) or 0
         hp = hp - dmg if hp - dmg > 0 else 0
         defender['stats']['hp'] = hp
         return {

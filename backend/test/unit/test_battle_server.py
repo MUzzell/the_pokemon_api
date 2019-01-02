@@ -36,6 +36,15 @@ def dummy_pokemon_setup(mock_pokedex):
                 'speed': 25,
                 'hp': 100
             }
+        },
+        '4': {
+            'name': 'POKE_D',
+            'stats': {
+                'attack': 40,
+                'defence': 45,
+                'speed': 30,
+                'hp': 100
+            }
         }
     }
 
@@ -80,7 +89,7 @@ def test_request_received_id_validation(
     battle_server, mock_pokedex, dummy_pokemon_setup,
     args, expected_code, err_msg
 ):
-    code, result = battle_server._request_received(args)
+    code, result = battle_server._request_received(*args)
 
     assert code == expected_code
 
@@ -89,7 +98,7 @@ def test_request_received_id_validation(
 
 
 @pytest.mark.parametrize(
-    'args, expected', [
+    'ident, expected', [
         (('AA', '1', '2'), {
             'combatants': ['POKE_A', 'POKE_B'],
             1: [{'attacker': 1, 'defender': 0,
@@ -223,14 +232,18 @@ def test_request_received_id_validation(
                  'damage': 30, 'hp': 310},
                 {'attacker': 1, 'defender': 0,
                  'damage': 35, 'hp': 0}],
+            }),
+        (('AA', '2', '4'), {
+            'combatants': ['POKE_B', 'POKE_D'],
+            1: [{}]
             })
     ]
 )
 def test_request_received_battle_results(
     battle_server, mock_pokedex, dummy_pokemon_setup,
-    args, expected
+    ident, expected
 ):
-    code, result = battle_server._request_received(args)
+    code, result = battle_server._request_received(*ident)
     assert code == 200
     assert result == expected
 
@@ -256,7 +269,7 @@ def test_request_received_equal_speed(
     # this loop therefore accomodates that, but only to a point.
     for i in range(attempts):
         code, results = battle_server._request_received(
-            ('A', '1', '4')
+            'A', '1', '4'
         )
         assert code == 200
         assert results['combatants'] == ['POKE_A', 'POKE_A']

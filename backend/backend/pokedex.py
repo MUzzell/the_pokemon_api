@@ -132,10 +132,7 @@ class Pokedex(object):
                     _build_key(POKEMON_TYPE_KEY, p_type), p_id
                 )
         for stat, val in pokemon['stats'].items():
-            self.redis.lpush(
-                _build_key(POKEMON_STATS_KEY, stat),
-                "{}:{}".format(val, p_id)
-            )
+            self.redis.lpush(_build_key(POKEMON_STATS_KEY, stat), p_id)
 
     def _get_pokemon_from_list(self, key):
         ids = self.redis.lrange(key, 0, -1)

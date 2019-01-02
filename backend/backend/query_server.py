@@ -22,13 +22,17 @@ class QueryServer(BaseServer):
         }
 
     def _request_received(self, q_type, arg):
-
-        result = self.q_func[q_type](arg)
-
-        if not result:
-            return 404, "Not found"
+        try:
+            result = self.q_func[q_type](arg)
+        except ValueError:
+            return 403, "Bad input"
+        except Exception:
+            return 500, "Internal server error"
         else:
-            return 200, result
+            if not result:
+                return 404, "Not found"
+            else:
+                return 200, result
 
     def _get_by_id(self, arg):
         return self.pokedex.get_pokemon_by_id(arg)
@@ -40,12 +44,21 @@ class QueryServer(BaseServer):
         return self.pokedex.get_pokemon_by_generation(arg)
 
     def _get_by_legendary(self, arg):
+        if arg.lower().strip() in ['0', 'f', 'false']:
+            arg = False
+        elif arg.lower().strip() in ['1', 't', 'true']:
+            arg = True
+        else:
+            raise ValueError("Bad input")
+
         return self.pokedex.get_pokemon_by_legendary(arg)
 
     def _get_by_type(self, arg):
         p_types = [a for a in arg.split(',') if a.strip()]
         if p_types:
             return self.pokedex.get_pokemon_by_type(p_types)
+        else:
+            raise ValueError("Bad input")
 
         return None
 

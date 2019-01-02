@@ -14,7 +14,7 @@ class BaseServer(object):
     def handle_request(self, ch, method, props, body):
         try:
             args = parse_request(body)
-            code, result = self._request_received(args)
+            code, result = self._request_received(*args)
             self._send_result(ch, method, props, code, result)
         except Exception as e:
             raise
