@@ -232,10 +232,6 @@ def test_request_received_id_validation(
                  'damage': 30, 'hp': 310},
                 {'attacker': 1, 'defender': 0,
                  'damage': 35, 'hp': 0}],
-            }),
-        (('AA', '2', '4'), {
-            'combatants': ['POKE_B', 'POKE_D'],
-            1: [{}]
             })
     ]
 )

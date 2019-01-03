@@ -36,6 +36,7 @@ services:
       - mq
     depends_on:
       - mq
+      - backend
     environment:
       - MQ_URL=amqp://mq:5672
       - FLASK_APP=/api/app.py
@@ -63,3 +64,18 @@ services:
       - POKEMON_DATA_FILE=/backend/pokemons.csv
     env_file:
       - queues.env
+
+  testing:
+    build:
+      context: ./testing
+      dockerfile: ./Dockerfile
+    container_name: testing
+    links:
+      - frontend
+    depends_on:
+      - frontend
+    volumes:
+      - ./testing:/testing
+    environment:
+      - TEST_HOST=frontend
+      - TEST_PORT=5000

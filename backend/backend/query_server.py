@@ -35,12 +35,23 @@ class QueryServer(BaseServer):
                 return 200, result
 
     def _get_by_id(self, arg):
+        arg = arg.strip()
+        if not arg:
+            raise ValueError("Bad input")
+
         return self.pokedex.get_pokemon_by_id(arg)
 
     def _get_by_name(self, arg):
+        arg = arg.strip()
+        if not arg:
+            raise ValueError("Bad input")
+
         return self.pokedex.get_pokemon_by_name(arg)
 
     def _get_by_gen(self, arg):
+        arg = arg.strip()
+        if not arg:
+            raise ValueError("Bad input")
         return self.pokedex.get_pokemon_by_generation(arg)
 
     def _get_by_legendary(self, arg):
